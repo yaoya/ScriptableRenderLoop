@@ -1,0 +1,4 @@
+[submodule "External"]
+	path = External
+	url = https://github.com/stramit/MaterialGraph.git/
+	branch = NewUI
