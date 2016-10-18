@@ -17,3 +17,6 @@ DataSource/*
 
 Assets/UnityHDRI.meta
 Assets/UnityHDRI/Gareoult/GareoultWhiteBalanced.exr
+Assets/GraphFramework/*
+Assets/NewUI/*
+Assets/UnityShaderEditor/*
