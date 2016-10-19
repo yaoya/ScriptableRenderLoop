@@ -532,11 +532,13 @@ namespace UnityEngine.ScriptableRenderLoop
 
                 // CAUTION: localToWorld is the transform for the widget of the reflection probe. i.e the world position of the point use to do the cubemap capture (mean it include the local offset)
                 l.positionWS = probe.localToWorld.GetColumn(3);
-                l.shapeType = EnvShapeType.None;
 
+                l.envShapeType = EnvShapeType.None;
+
+                // TODO: Support sphere in the interface
                 if (probe.boxProjection != 0)
                 {
-                    l.shapeType = EnvShapeType.Box;
+                    l.envShapeType = EnvShapeType.Box;
                 }
 
                 // remove scale from the matrix (Scale in this matrix is use to scale the widget)
@@ -547,12 +549,18 @@ namespace UnityEngine.ScriptableRenderLoop
                 l.forward = probe.localToWorld.GetColumn(2);
                 l.forward.Normalize();
 
-                l.innerDistance = probe.bounds.extents;
+                // Artists prefer to have blend distance inside the volume!
+                // So we let the current UI but we assume blendDistance is an inside factor instead
+                // Blend distance can't be larger than the max radius
+                // probe.bounds.extents is BoxSize / 2
+                float maxBlendDist = Mathf.Min(probe.bounds.extents.x, Mathf.Min(probe.bounds.extents.y, probe.bounds.extents.z));
+                float blendDistance = Mathf.Min(maxBlendDist, probe.blendDistance);
+                l.innerDistance = probe.bounds.extents - new Vector3(blendDistance, blendDistance, blendDistance);
 
                 l.sliceIndex = m_cubeReflTexArray.FetchSlice(probe.texture);
 
                 l.offsetLS = probe.center; // center is misnamed, it is the offset (in local space) from center of the bounding box to the cubemap capture point
-                l.blendDistance = probe.blendDistance;
+                l.blendDistance = blendDistance;
                 lights.Add(l);
             }
 

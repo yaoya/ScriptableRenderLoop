@@ -792,19 +792,23 @@ void EvaluateBSDF_Env(  float3 V, float3 positionWS, PreLightData prelightData, 
     float3 R = rayWS;
     float weight = 1.0;
 
+    // In this code we redefine a bit the behavior of the reflcetion proble. We separate the projection volume (the proxy of the scene) form the influence volume (what pixel on the screen is affected)
+
+    // 1. First determine the projection volume
+    
     // In Unity the cubemaps are capture with the localToWorld transform of the component. 
     // This mean that location and oritention matter. So after intersection of proxy volume we need to convert back to world.
-    if (lightData.shapeType == ENVSHAPETYPE_BOX)
+    
+    // CAUTION: localToWorld is the transform use to convert the cubemap capture point to world space (mean it include the offset)
+    // the center of the bounding box is thus in locals space: positionLS - offsetLS
+    // We use this formulation as it is the one of legacy unity that was using only AABB box.
+
+    float3x3 worldToLocal = transpose(float3x3(lightData.right, lightData.up, lightData.forward)); // worldToLocal assume no scaling
+    float3 positionLS = positionWS - lightData.positionWS;
+    positionLS = mul(positionLS, worldToLocal).xyz - lightData.offsetLS; // We want to calculate the intersection from the center of the bounding box.
+
+    if (lightData.envShapeType == ENVSHAPETYPE_BOX)
     {
-        // CAUTION: localToWorld is the transform use to convert the cubemap capture point to world space (mean it include the offset)
-        // the center of the bounding box is thus in locals space: positionLS - offsetLS
-        // We use this formulation as it is the one of legacy unity that was using only AABB box.
-
-        // worldToLocal assume no scaling
-        float3x3 worldToLocal = transpose(float3x3(lightData.right, lightData.up, lightData.forward));
-        float3 positionLS = positionWS - lightData.positionWS;
-        positionLS = mul(positionLS, worldToLocal).xyz - lightData.offsetLS; // We want to calculate the intersection from the center of the bounding box.
-
         float3 rayLS = mul(rayWS, worldToLocal);
         float3 boxOuterDistance = lightData.innerDistance + float3(lightData.blendDistance, lightData.blendDistance, lightData.blendDistance);
         float dist = BoxRayIntersectSimple(positionLS, rayLS, -boxOuterDistance, boxOuterDistance);
@@ -814,34 +818,31 @@ void EvaluateBSDF_Env(  float3 V, float3 positionWS, PreLightData prelightData, 
         R = (positionWS + dist * rayWS) - lightData.positionWS;
         
         // TODO: add distance based roughness
+    } 
+    else if (lightData.envShapeType == ENVSHAPETYPE_SPHERE)
+    {
+        float3 rayLS = mul(rayWS, worldToLocal);
+        float sphereOuterDistance = lightData.innerDistance.x + lightData.blendDistance;
+        float dist = SphereRayIntersectSimple(positionLS, rayLS, sphereOuterDistance);
 
+        R = (positionWS + dist * rayWS) - lightData.positionWS;
+    }
+
+    // 2. Apply the influence volume (Box volume is used for culling whatever the influence shape)
+    if (lightData.envShapeType == ENVSHAPETYPE_SPHERE)
+    {
+        float distFade = max(length(positionLS) - lightData.innerDistance.x, 0.0);
+        weight = saturate(1.0 - distFade / max(lightData.blendDistance, 0.0001)); // avoid divide by zero
+    }
+    else // ENVSHAPETYPE_BOX or ENVSHAPETYPE_NONE 
+    {
         // Calculate falloff value, so reflections on the edges of the volume would gradually blend to previous reflection.
         float distFade = DistancePointBox(positionLS, -lightData.innerDistance, lightData.innerDistance);
         weight = saturate(1.0 - distFade / max(lightData.blendDistance, 0.0001)); // avoid divide by zero
-
-        // Smooth weighting
-        weight = smoothstep01(weight);
-    } 
-    else if (lightData.shapeType == ENVSHAPETYPE_SPHERE)
-    {
-        // For now there is no specific interface for sphere proxy and it can have offset and arbitrary orientation. So we need to transform 
-        // to local space position and direction like for OBB.
-        float3x3 worldToLocal = transpose(float3x3(lightData.right, lightData.up, lightData.forward));
-        float3 positionLS = positionWS - lightData.positionWS;
-        positionLS = mul(positionLS, worldToLocal).xyz - lightData.offsetLS; // We want to calculate the intersection from the center of the bounding box.
-
-        float3 rayLS = mul(rayWS, worldToLocal);
-        float sphereRadius = lightData.innerDistance.x;
-        float dist = SphereRayIntersectSimple(positionLS, rayLS, sphereRadius + lightData.blendDistance);
-
-        R = (positionWS + dist * rayWS) - lightData.positionWS;
-
-        float distFade = length(positionWS - lightData.positionWS);
-        weight = saturate(((sphereRadius + lightData.blendDistance) - distFade) / max(lightData.blendDistance, 0.0001)); // avoid divide by zero
-        
-        // Smooth weighting
-        weight = smoothstep01(weight);
     }
+
+    // Smooth weighting
+    weight = smoothstep01(weight);
 
     // TODO: we must always perform a weight calculation as due to tiled rendering we need to smooth out cubemap at boundaries.
     // So goal is to split into two category and have an option to say if we parallax correct or not.

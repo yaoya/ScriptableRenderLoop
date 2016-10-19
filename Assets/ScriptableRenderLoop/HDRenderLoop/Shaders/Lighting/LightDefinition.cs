@@ -76,22 +76,22 @@ namespace UnityEngine.ScriptableRenderLoop
     public struct EnvLightData
     {
         public Vector3 positionWS;
-        public EnvShapeType shapeType;
+        public EnvShapeType envShapeType;
 
         public Vector3 forward;
-        public int sliceIndex;
+        public float unused2;
 
         public Vector3 up;
-        public float blendDistance;
+        public float blendDistance;     // blend transition outside the volume
 
         public Vector3 right;
+        public int sliceIndex;
+
+        public Vector3 innerDistance;   // equivalent to volume scale
         public float unused0;
 
-        public Vector3 innerDistance;
-        public float unused1;
-
         public Vector3 offsetLS;
-        public float unused2;
+        public float unused1;
     };
 
     [GenerateHLSL]

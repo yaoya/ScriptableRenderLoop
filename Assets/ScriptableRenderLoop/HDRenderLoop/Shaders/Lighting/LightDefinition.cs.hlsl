@@ -62,17 +62,17 @@ struct AreaLightData
 struct EnvLightData
 {
 	float3 positionWS;
-	int shapeType;
+	int envShapeType;
 	float3 forward;
-	int sliceIndex;
+	float unused2;
 	float3 up;
 	float blendDistance;
 	float3 right;
-	float unused0;
+	int sliceIndex;
 	float3 innerDistance;
-	float unused1;
+	float unused0;
 	float3 offsetLS;
-	float unused2;
+	float unused1;
 };
 
 // Generated from UnityEngine.ScriptableRenderLoop.PlanarLightData
@@ -201,17 +201,17 @@ float3 GetPositionWS(EnvLightData value)
 {
 	return value.positionWS;
 }
-int GetShapeType(EnvLightData value)
+int GetEnvShapeType(EnvLightData value)
 {
-	return value.shapeType;
+	return value.envShapeType;
 }
 float3 GetForward(EnvLightData value)
 {
 	return value.forward;
 }
-int GetSliceIndex(EnvLightData value)
+float GetUnused2(EnvLightData value)
 {
-	return value.sliceIndex;
+	return value.unused2;
 }
 float3 GetUp(EnvLightData value)
 {
@@ -225,25 +225,25 @@ float3 GetRight(EnvLightData value)
 {
 	return value.right;
 }
-float GetUnused0(EnvLightData value)
+int GetSliceIndex(EnvLightData value)
 {
-	return value.unused0;
+	return value.sliceIndex;
 }
 float3 GetInnerDistance(EnvLightData value)
 {
 	return value.innerDistance;
 }
-float GetUnused1(EnvLightData value)
+float GetUnused0(EnvLightData value)
 {
-	return value.unused1;
+	return value.unused0;
 }
 float3 GetOffsetLS(EnvLightData value)
 {
 	return value.offsetLS;
 }
-float GetUnused2(EnvLightData value)
+float GetUnused1(EnvLightData value)
 {
-	return value.unused2;
+	return value.unused1;
 }
 
 //
